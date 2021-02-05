@@ -31,7 +31,8 @@
 - 매개변수 이름은 관계x 받아온 주소값으로 지역내에서 어떤 이름으로 쓸지 정하는 것이기 때문에
 - 다른 외부 변화에 영향을 받지 않는 **함수의 고립화**
   <br> tip : 프로그래밍을 할 땐 배열연산을 최소화 할 수 있도록 지역변수 하나 준비하는게 바람직함.
-  ```java
+
+  ````java
   static void inputKors(int[] kors) {
   int kor;
   for (int i = 0; i < 3; i++) {
@@ -45,6 +46,7 @@
               }
           }
       ```
+  ````
 
 **5. 함수 이름 짓기**
 
@@ -53,7 +55,6 @@
 - 특수문자(!@$%...)는 사용할 수 없다.
   <br>
   ex) 로또번호정렬 -> 정렬로또번호 -> sortLotto()
-
 
 **6. Top-down 방식**
 
@@ -165,9 +166,151 @@ exams[0].kor=30;
 - for문 안 변수선언 비효율적? No!  
   선언은 함수가 호출될 때 마련되는 준비물 같은 것. 연산이 아니기 때문에 반복되며 연산되는 게 아님.  
   요리 준비물처럼 미리 준비되고, 동작 과정(요리)에선 포함되지 않음. for문이든 for문밖이든 반복해서 실행되지 않음.
-  
-  
-  ---
+
+**12. 가변 길이 배열**
+
+- `int current`를 생성하여
+
+```java
+//input 함수
+private static void inputList(Exam[] exams, int current) {
+  //생략
+exams[current] = exam;
+current++;
+}
+//print 함수
+private static void printList(Exam[] exams, int size) {
+		//생략
+		for (int i = 0; i < size; i++) {
+		//생략
+		}
+	}
+  // 시도는 좋았으나...함수로 받아온 current만 그 지역내에서 값이 변하지 실제 current가 변하진 않는다. printList의 current=0이라 출력X ㅠ
+```
+
+- 자바는 c, c++과 다르게 <u>주소 전달할 유일한 방법</u>은 기본 자료형이 아니라, <u>참조형 전달만</u> 가능함.
+- 함수 단위에서 공유해야 할 데이터라면 큰 단위의 구조체로 묶어서 공유
+
+```java
+class ExamList{
+  Exam[] exams;
+  int current;
+}
+
+ExamList list = new Examlist();
+list.exams = new Exam[3];
+list.current = 0;
+inputList(list);
+printList(list);
+```
+
+- 동적인 공간을 관리하기 위해 필요한 capacity 변수
+  - 용량(capacity)가 변하기 때문에 새로운 변수가 필요함.
+  - 가변 List : [] + current + capacity
+- 만약에 공간이 모자르면
+  ```java
+  if(capacity==current){
+    Exam[] temp = new Exam[capacity+amount];
+    //amount개 확장한 새로운 배열 temp를 생성
+    for(int i=0; i<current; i++)
+      temp[i] = list[i];
+      //list(exams)에 있는 데이터를 temp 배열로 옮김
+    list = temp;
+    // temp가 참조하는 객체를 list가 참조하게 함
+    // 원래 list 는 garvage가 된다
+    capacity += amount;
+    // 현재 capacity 값을 +10 증가시킴
+  }
+  ```
+
+**13. 함수 오버로딩**
+
+- 같은 기능 다른 인자를 가지는 함수 추가하기
+
+```java
+static void printList(ExamList list){
+  int size = list.current;
+  Exam[] exams = list.exams;
+  //(생략)
+}
+static void printList(ExamList list, int size){
+  //(생략)
+}
+// 두번째가 할 수 있는걸 첫번째가 다 할 순 없다
+// 첫번째가 할 수 있는건 두번째가 다 할 수 있다
+// 따라서!! 구현할 때 두번째만 있어도 됨
+```
+
+- 기본 함수(가장 심플한 함수)에서 인자 많아진 게 오버로드 된 함수.
+  - 인자 없는 게 더 사용빈도가 높으니까 기본 함수
+  - 오버로드 함수 구현하면 사용자가 골라쓸 수 있어서 편함.
+- 인자 많은 함수가 인자 없는 함수의 일을 다 할 수 있다.
+- **집중화**
+  - 기능이 같으니 한 함수가 달라졌을 때 같이 고쳐져야 한다.
+  - 따라서 공통의 기능은 집중화를 해야한다!
+  - 구현은 인자 많은 것만, 인자 없는 보편적인 함수가 구현한 함수를 재호출 할 수 있도록.
+  ```java
+  static void printList(ExamList list){
+    printList(list, list.current)
+  }
+  static void printList(ExamList list, int size){
+    //(생략)
+  }
+  ```
+
+**14. 코드 실행과 함수 호출 스택**
+
+- 메모리
+
+  - 코드 실행 과정에 필요한 데이터 보관 영역 (Data)
+    - Heap
+      - 동적으로 생성되는 메모리 마련하는 공간
+      - 입석
+      - new Exam() 객체 공간이 할당되어야 함. 연산에 의해 할당되는 공간.
+      ```java
+      kor // 0(4번) -> 7(7번)
+      eng // 0(4번)
+      math // 0(4번)
+      ```
+      - 참조가 사라져도 남아있다. 메모리 누수.
+      - 자바같은 경우엔 런타임 환경에 의해 참조되지 않은 객체가 heap에 있으면 주기적으로 찾아 지워준다.
+    - Stack
+      - 함수의 지역변수 마련하는 공간
+      - 코드 연산(process) 전에 선언되어 있는 변수 공간이 미리 마련된다.
+      ```java
+      // 메인함수
+      args
+      total // 값, 0(1번)
+      avg // 값, 0(1번)
+      exam
+      // input 함수 지역변수(6번), 7번 연산 후 (값반환) 사라짐
+      // exam
+      // test
+      ```
+      - 준비된 공간은 다른 공간이 할당될 수 없게 잠기고 딱 알맞은 메모리크기로 마련됨.
+      - 예약석
+      - 함수 호출되면 위에 쌓였다가 사라지면 밑으로 내려가는... 마치 메모리가 물건을 적재하듯 올라갔다가 다시 내려가는 것처럼 사용되기 때문에 stack
+  - 코드가 올라오는 영역 (Text)
+    - 컴파일 이진파일
+    - process
+    ```java
+    ststic void main(String args[]){
+      int total = 0; // 1번
+      float avg = 0; // 2번
+      Exam exam = new Exam();
+      // 3번 new Exam 3번
+      // 4번 () 초기화(0,0,0)
+      // 5번 = new Exam()이 참조변수(heap의 kor,eng,math)를 가리키게 됨
+      input(exam,7);
+      // 6번, 함수 호출
+    } // 8번 시스템으로 리턴 -> 스택에 메인함수 영역도 사라짐
+    void input(Exam exam, int test){
+      ...
+      kor=test; // 7번
+    }
+    ```
+
+  ***
 
 ### Tip
 
